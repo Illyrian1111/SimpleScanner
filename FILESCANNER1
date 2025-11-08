@@ -4,7 +4,7 @@ $ErrorActionPreference = "SilentlyContinue"
 
 Write-Host ""
 Write-Host "╔════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║                 ꜰɪʟᴇ  ꜱᴄᴀɴɴᴇʀ                 ║" -ForegroundColor Cyan
+Write-Host "║              Fɪʟᴇ  Sᴄᴀɴɴᴇʀ                 ║" -ForegroundColor Cyan
 Write-Host "╚════════════════════════════════════════════╝" -ForegroundColor Cyan
 Write-Host ""
 
