@@ -1,0 +1,86 @@
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "SilentlyContinue"
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+Write-Host ""
+Write-Host "╔════════════════════════════════════════════╗" -ForegroundColor Cyan
+Write-Host "║             File Scanner                   ║" -ForegroundColor Cyan
+Write-Host "╚════════════════════════════════════════════╝" -ForegroundColor Cyan
+Write-Host ""
+
+$drives = Get-PSDrive -PSProvider FileSystem | Select-Object -ExpandProperty Root
+$allFiles = @()
+
+foreach ($drive in $drives) {
+    try {
+        $files = Get-ChildItem -Path $drive -Recurse -File -ErrorAction SilentlyContinue |
+                 Where-Object { $_.Extension -match '\.exe$|\.dll$' }
+        $allFiles += $files
+    } catch {}
+}
+
+$imguiHits = @()
+$unsignedExe = @()
+$unsignedDll = @()
+
+function Test-Signed {
+    param ($Path)
+    try {
+        $sig = Get-AuthenticodeSignature -FilePath $Path -ErrorAction SilentlyContinue
+        return ($sig.Status -eq 'Valid')
+    } catch {
+        return $false
+    }
+}
+
+foreach ($file in $allFiles) {
+    $lower = $file.FullName.ToLower()
+
+    try {
+        $bytes = Get-Content -Path $file.FullName -Raw -ErrorAction SilentlyContinue
+        if ($bytes -match "imgui") {
+            $imguiHits += $file.FullName
+            continue
+        }
+    } catch {}
+
+    if ($file.Extension -eq ".exe") {
+        if (-not (Test-Signed $file.FullName)) {
+            $unsignedExe += $file.FullName
+        }
+    }
+
+    if ($file.Extension -eq ".dll") {
+        if (-not (Test-Signed $file.FullName)) {
+            $unsignedDll += $file.FullName
+        }
+    }
+}
+
+Write-Host "`n───────────────────────────────────────────────" -ForegroundColor DarkGray
+Write-Host "Found Generic ImGui Files:" -ForegroundColor Yellow
+if ($imguiHits.Count -gt 0) {
+    $imguiHits | ForEach-Object { Write-Host " - $_" -ForegroundColor White }
+} else {
+    Write-Host "None detected." -ForegroundColor DarkGray
+}
+
+Write-Host "`n───────────────────────────────────────────────" -ForegroundColor DarkGray
+Write-Host "Non Signed Executables found:" -ForegroundColor Yellow
+if ($unsignedExe.Count -gt 0) {
+    $unsignedExe | ForEach-Object { Write-Host " - $_" -ForegroundColor White }
+} else {
+    Write-Host "None detected." -ForegroundColor DarkGray
+}
+
+Write-Host "`n───────────────────────────────────────────────" -ForegroundColor DarkGray
+Write-Host "Non Signed DLLs found:" -ForegroundColor Yellow
+if ($unsignedDll.Count -gt 0) {
+    $unsignedDll | ForEach-Object { Write-Host " - $_" -ForegroundColor White }
+} else {
+    Write-Host "None detected." -ForegroundColor DarkGray
+}
+
+Write-Host "`nScan completed."
+Write-Host "───────────────────────────────────────────────" -ForegroundColor DarkGray
+exit
