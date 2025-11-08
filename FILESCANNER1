@@ -4,7 +4,7 @@ $ErrorActionPreference = "SilentlyContinue"
 
 Write-Host ""
 Write-Host "╔════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║      File Scanner        XX                ║" -ForegroundColor Cyan
+Write-Host "║                 ꜰɪʟᴇ  ꜱᴄᴀɴɴᴇʀ                 ║" -ForegroundColor Cyan
 Write-Host "╚════════════════════════════════════════════╝" -ForegroundColor Cyan
 Write-Host ""
 
@@ -27,7 +27,6 @@ foreach ($path in $scanPaths) {
     }
 }
 
-$imguiHits = @()
 $unsignedExe = @()
 $unsignedDll = @()
 
@@ -50,18 +49,6 @@ foreach ($file in $allFiles) {
         Write-Host ("Scanning... {0}/{1}" -f $count, $total) -ForegroundColor DarkGray
     }
 
-    try {
-        $stream = [System.IO.File]::Open($file.FullName, 'Open', 'Read', 'ReadWrite')
-        $buffer = New-Object byte[] 2048
-        $null = $stream.Read($buffer, 0, 2048)
-        $stream.Close()
-        $content = [System.Text.Encoding]::ASCII.GetString($buffer)
-        if ($content -match "imgui") {
-            $imguiHits += $file.FullName
-            continue
-        }
-    } catch {}
-
     if ($file.Extension -eq ".exe" -and -not (Test-Signed $file.FullName)) {
         $unsignedExe += $file.FullName
     }
@@ -69,14 +56,6 @@ foreach ($file in $allFiles) {
     if ($file.Extension -eq ".dll" -and -not (Test-Signed $file.FullName)) {
         $unsignedDll += $file.FullName
     }
-}
-
-Write-Host "`n───────────────────────────────────────────────" -ForegroundColor DarkGray
-Write-Host "Found Generic ImGui Files:" -ForegroundColor Yellow
-if ($imguiHits.Count -gt 0) {
-    $imguiHits | ForEach-Object { Write-Host " - $_" -ForegroundColor White }
-} else {
-    Write-Host "None detected." -ForegroundColor DarkGray
 }
 
 Write-Host "`n───────────────────────────────────────────────" -ForegroundColor DarkGray
