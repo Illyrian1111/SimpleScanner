@@ -4,7 +4,7 @@ $ErrorActionPreference = "SilentlyContinue"
 
 Write-Host ""
 Write-Host "╔════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║                  File Scanner              ║" -ForegroundColor Cyan
+Write-Host "║      File Scanner        XX                ║" -ForegroundColor Cyan
 Write-Host "╚════════════════════════════════════════════╝" -ForegroundColor Cyan
 Write-Host ""
 
@@ -41,10 +41,22 @@ function Test-Signed {
     }
 }
 
+$total = $allFiles.Count
+$count = 0
+
 foreach ($file in $allFiles) {
+    $count++
+    if ($count % 50 -eq 0) {
+        Write-Host ("Scanning... {0}/{1}" -f $count, $total) -ForegroundColor DarkGray
+    }
+
     try {
-        $bytes = Get-Content -Path $file.FullName -Raw -ErrorAction SilentlyContinue
-        if ($bytes -match "imgui") {
+        $stream = [System.IO.File]::Open($file.FullName, 'Open', 'Read', 'ReadWrite')
+        $buffer = New-Object byte[] 2048
+        $null = $stream.Read($buffer, 0, 2048)
+        $stream.Close()
+        $content = [System.Text.Encoding]::ASCII.GetString($buffer)
+        if ($content -match "imgui") {
             $imguiHits += $file.FullName
             continue
         }
