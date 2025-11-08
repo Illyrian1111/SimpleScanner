@@ -4,19 +4,27 @@ $ErrorActionPreference = "SilentlyContinue"
 
 Write-Host ""
 Write-Host "╔════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║             File Scanner                   ║" -ForegroundColor Cyan
+Write-Host "║                  File Scanner              ║" -ForegroundColor Cyan
 Write-Host "╚════════════════════════════════════════════╝" -ForegroundColor Cyan
 Write-Host ""
 
-$drives = Get-PSDrive -PSProvider FileSystem | Select-Object -ExpandProperty Root
-$allFiles = @()
+$scanPaths = @(
+    "$env:USERPROFILE\Desktop",
+    "$env:USERPROFILE\Downloads",
+    "$env:USERPROFILE\Documents",
+    "$env:USERPROFILE\AppData\Local",
+    "$env:USERPROFILE\AppData\Roaming"
+)
 
-foreach ($drive in $drives) {
-    try {
-        $files = Get-ChildItem -Path $drive -Recurse -File -ErrorAction SilentlyContinue |
-                 Where-Object { $_.Extension -match '\.exe$|\.dll$' }
-        $allFiles += $files
-    } catch {}
+$allFiles = @()
+foreach ($path in $scanPaths) {
+    if (Test-Path $path) {
+        try {
+            $files = Get-ChildItem -Path $path -Recurse -File -ErrorAction SilentlyContinue |
+                     Where-Object { $_.Extension -match '\.exe$|\.dll$' }
+            $allFiles += $files
+        } catch {}
+    }
 }
 
 $imguiHits = @()
@@ -34,8 +42,6 @@ function Test-Signed {
 }
 
 foreach ($file in $allFiles) {
-    $lower = $file.FullName.ToLower()
-
     try {
         $bytes = Get-Content -Path $file.FullName -Raw -ErrorAction SilentlyContinue
         if ($bytes -match "imgui") {
@@ -44,16 +50,12 @@ foreach ($file in $allFiles) {
         }
     } catch {}
 
-    if ($file.Extension -eq ".exe") {
-        if (-not (Test-Signed $file.FullName)) {
-            $unsignedExe += $file.FullName
-        }
+    if ($file.Extension -eq ".exe" -and -not (Test-Signed $file.FullName)) {
+        $unsignedExe += $file.FullName
     }
 
-    if ($file.Extension -eq ".dll") {
-        if (-not (Test-Signed $file.FullName)) {
-            $unsignedDll += $file.FullName
-        }
+    if ($file.Extension -eq ".dll" -and -not (Test-Signed $file.FullName)) {
+        $unsignedDll += $file.FullName
     }
 }
 
